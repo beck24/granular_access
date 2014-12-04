@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin_manifest xmlns="http://www.elgg.org/plugin_manifest/1.8">
+    <name>Granular Access</name>
+    <id>granular_access</id>
+    <author>Matt Beckett</author>
+    <version>1.0</version>
+    <description>Set custom access on a per user/group basis</description>
+    <website>http://mattbeckett.me</website>
+    <copyright>(C) Matt Beckett, 2011</copyright>
+    <license>GNU Public License version 2</license>
+ 
+    <!-- All plugins must require either elgg_version or elgg_release. -->
+    <requires>
+        <type>elgg_release</type>
+        <version>1.8</version>
+    </requires>
+    
+    <requires>
+        <type>plugin</type>
+        <name>elgg_tokeninput</name>
+    </requires>
+    
+    <requires>
+        <type>plugin</type>
+        <name>vroom</name>
+    </requires>
+  
+    <category>Access</category>
+</plugin_manifest>
