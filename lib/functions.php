@@ -9,8 +9,10 @@ function can_use_granular($user) {
 	if (!elgg_instanceof($user, 'user')) {
 		return false;
 	}
+	
 	// some logic yet to be determined
-	return true;
+	// allow other plugins to weigh in
+	return elgg_trigger_plugin_hook('granular_access', 'can_use', array('user' => $user), true);
 }
 
 function tokeninput_search($query, $options = array()) {
