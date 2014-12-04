@@ -6,13 +6,15 @@ use ElggObject;
 use ElggBatch;
 
 function can_use_granular($user) {
+	$result = true;
+	
 	if (!elgg_instanceof($user, 'user')) {
-		return false;
+		$result = false;
 	}
 	
 	// some logic yet to be determined
 	// allow other plugins to weigh in
-	return elgg_trigger_plugin_hook('granular_access', 'can_use', array('user' => $user), true);
+	return elgg_trigger_plugin_hook('granular_access', 'can_use', array('user' => $user), $result);
 }
 
 function tokeninput_search($query, $options = array()) {
