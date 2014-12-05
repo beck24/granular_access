@@ -3,7 +3,7 @@
 elgg.provide('elgg.granular_access');
 
 elgg.granular_access.init = function() {
-	$('select.elgg-input-access').live('change', function(e) {
+	$('select').live('change', function(e) {
 		if ($(this).val() === 'granular') {
 			elgg.granular_access.reveal_granular($(this));
 		}
