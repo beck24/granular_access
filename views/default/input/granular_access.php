@@ -78,6 +78,6 @@ if (!$set_custom) {
 
 <script>
 	$(document).ready(function() {
-		$('select.elgg-input-access[name="<?php echo $name; ?>"]').val('granular');
+		$('select[name="<?php echo $name; ?>"]').val('granular');
 	});
 </script>
