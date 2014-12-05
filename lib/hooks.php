@@ -1,7 +1,7 @@
 <?php
 
 namespace GranularAccess;
-
+use ElggBatch;
 
 function acl_write_options($h, $t, $r, $p) {
 	$user = get_user($p['user_id']);
@@ -45,6 +45,60 @@ function action_submit($h, $t, $r, $p) {
 	}
 	
 	set_input('granular_access_names', null);
+	
+	return $r;
+}
+
+
+/**
+ * @TODO - is there a way we can target them directly instead of iterating through all?
+ * 
+ * @param type $h
+ * @param type $t
+ * @param type $r
+ * @param type $p
+ * @return type
+ */
+function weekly_cron($h, $t, $r, $p) {
+	$ia = elgg_set_ignore_access(true);
+	// check for abandoned acls
+	$dbprefix = elgg_get_config('dbprefix');
+	
+	// try to make this as light as possible
+	$options = array(
+		'type' => 'object',
+		'subtype' => 'granular_access',
+		'limit' => false
+	);
+	
+	$batch = new ElggBatch('elgg_get_entities', $options);
+	
+	foreach ($batch as $b) {
+		$sql = "SELECT COUNT(guid) as total FROM {$dbprefix}entities WHERE access_id = {$b->acl_id}";
+		$result = get_data($sql);
+		
+		if ($result[0]->total) {
+			continue;
+		}
+		
+		$sql = "SELECT COUNT(id) as total FROM {$dbprefix}metadata WHERE access_id = {$b->acl_id}";
+		$result = get_data($sql);
+		if ($result[0]->total) {
+			continue;
+		}
+		
+		$sql = "SELECT COUNT(id) as total FROM {$dbprefix}annotations WHERE access_id = {$b->acl_id}";
+		$result = get_data($sql);
+		if ($result[0]->total) {
+			continue;
+		}
+		
+		// this appears to be orphaned
+		delete_access_collection($b->acl_id);
+		$b->delete();
+	}
+	
+	elgg_set_ignore_access($ia);
 	
 	return $r;
 }

@@ -8,7 +8,6 @@
  */
 
 //@TODO - cleanup unused acls
-// maintain acls for events
 
 namespace GranularAccess;
 
@@ -28,6 +27,7 @@ function init() {
 	// add a 'custom' option into the acl list
 	elgg_register_plugin_hook_handler('access:collections:write', 'user', __NAMESPACE__ . '\\acl_write_options');
 	elgg_register_plugin_hook_handler('action', 'all', __NAMESPACE__ . '\\action_submit', 2);
+	elgg_register_plugin_hook_handler('cron', 'weekly', __NAMESPACE__ . '\\weekly_cron');
 	
 	// register these late in case some other event handler prevents joining/leaving
 	elgg_register_event_handler('join', 'group', __NAMESPACE__ . '\\join_goup', 1000);

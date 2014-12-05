@@ -46,6 +46,10 @@ if ($set_custom) {
 	// this is a granular_access value, so we should show the form by default
 	$hidden = '';
 }
+
+$default_callback = __NAMESPACE__ . '\\tokeninput_search';
+$callback = elgg_trigger_plugin_hook('granular_access', 'search_callback', $vars, $default_callback);
+
 ?>
 <div class="granular-access-wrapper<?php echo $hidden; ?> pam" data-name="<?php echo $name; ?>">
 	<label><?php echo elgg_echo('granular_access:custom:access:label'); ?></label>
@@ -54,7 +58,7 @@ if ($set_custom) {
 		'name' => 'ga_build_' . $name,
 		'value' => $granular_access ? (array) $granular_access->access_list : array(),
 		'multiple' => true,
-		'callback' => __NAMESPACE__ . '\\tokeninput_search'
+		'callback' => $callback
 	));
 
 	echo elgg_view('output/longtext', array(
