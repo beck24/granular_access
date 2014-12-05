@@ -225,3 +225,34 @@ function repopulate_acl($granular_access) {
 	
 	elgg_set_ignore_access($ia);
 }
+
+
+/**
+ * when duplicate access is detected we'll transfer all content assigned to
+ * one and assign it to the other
+ * All content from $access1 will now be under $access2
+ * 
+ * @param type $access1
+ * @param type $access2
+ */
+function merge_access($access1, $access2) {
+	if (!elgg_instanceof($access1, 'object', 'granular_access') || !$access1->acl_id) {
+		return false;
+	}
+	
+	if (!elgg_instanceof($access2, 'object', 'granular_access') || !$access2->acl_id) {
+		return false;
+	}
+	
+	$dbprefix = elgg_get_config('dbprefix');
+	$sql = "UPDATE {$dbprefix}entities SET access_id = {$access2->acl_id} WHERE access_id = {$access1->acl_id}";
+	update_data($sql);
+	
+	$sql = "UPDATE {$dbprefix}metadata SET access_id = {$access2->acl_id} WHERE access_id = {$access1->acl_id}";
+	update_data($sql);
+	
+	$sql = "UPDATE {$dbprefix}annotations SET access_id = {$access2->acl_id} WHERE access_id = {$access1->acl_id}";
+	update_data($sql);
+	
+	return true;
+}

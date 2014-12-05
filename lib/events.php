@@ -195,6 +195,26 @@ function process_group_deletion() {
 			continue;
 		}
 		
+		// make sure this doesn't just become a duplicate
+		$token = get_token_from_guids($access_list);
+		$entities = elgg_get_entities_from_metadata(array(
+			'type' => 'object',
+			'subtype' => 'granular_access',
+			'metadata_name_value_pairs' => array(
+				'name' => 'token',
+				'value' => $token
+			),
+			'wheres' => array("e.guid != {$granular_access->guid}")
+		));
+			
+		if ($entities) {
+			if (merge_access($granular_access, $entities[0])) {
+				delete_access_collection($granular_access->acl_id);
+				$granular_access->delete();
+				continue;
+			}
+		}
+		
 		$granular_access->access_list = $access_list;
 		
 		repopulate_access_collection($granular_access);
