@@ -2,5 +2,8 @@
 
 x.x (mm/dd/yyyy):
 
+1.1 (04/08/2015):
+ - better shutdown detection
+
 1.0 (12/04/2014):
  - Initial Release

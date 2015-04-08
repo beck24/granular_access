@@ -22,6 +22,7 @@ function populate_acls() {
 		repopulate_acl($granular_access);
 
 	}
+	elgg_set_config('new_granular_access', array());
 	elgg_set_ignore_access($ia);
 }
 
@@ -30,26 +31,41 @@ function join_group($e, $t, $params) {
 	remember_join_group($params['group'], $params['user']);
 
 	// unregister first so we don't end up with multiple firings of the event
-	elgg_unregister_event_handler('shutdown', 'system', __NAMESPACE__ . '\\process_group_joins');
-	elgg_register_event_handler('shutdown', 'system', __NAMESPACE__ . '\\process_group_joins');
+	if (!$GLOBALS['shutdown_flag']) {
+		elgg_unregister_event_handler('shutdown', 'system', __NAMESPACE__ . '\\process_group_joins');
+		elgg_register_event_handler('shutdown', 'system', __NAMESPACE__ . '\\process_group_joins');
+	}
+	else {
+		process_group_joins();
+	}
 }
 
 function leave_group($e, $t, $params) {
 	// save for the shutdown handler to process
 	remember_leave_group($params['group'], $params['user']);
 
-	// unregister first so we don't end up with multiple firings of the event
-	elgg_unregister_event_handler('shutdown', 'system', __NAMESPACE__ . '\\process_group_leaves');
-	elgg_register_event_handler('shutdown', 'system', __NAMESPACE__ . '\\process_group_leaves');
+	if (!$GLOBALS['shutdown_flag']) {
+		// unregister first so we don't end up with multiple firings of the event
+		elgg_unregister_event_handler('shutdown', 'system', __NAMESPACE__ . '\\process_group_leaves');
+		elgg_register_event_handler('shutdown', 'system', __NAMESPACE__ . '\\process_group_leaves');
+	}
+	else {
+		process_group_leaves();
+	}
 }
 
 
 function delete_group($e, $t, $group) {
 	remember_delete_group($group);
 	
-	// unregister first so we don't end up with multiple firings of the event
-	elgg_unregister_event_handler('shutdown', 'system', __NAMESPACE__ . '\\process_group_deletion');
-	elgg_register_event_handler('shutdown', 'system', __NAMESPACE__ . '\\process_group_deletion');
+	if (!$GLOBALS['shutdown_flag']) {
+		// unregister first so we don't end up with multiple firings of the event
+		elgg_unregister_event_handler('shutdown', 'system', __NAMESPACE__ . '\\process_group_deletion');
+		elgg_register_event_handler('shutdown', 'system', __NAMESPACE__ . '\\process_group_deletion');
+	}
+	else {
+		process_group_deletion();
+	}
 }
 
 // called on shutdown handler
@@ -84,6 +100,8 @@ function process_group_joins() {
 			add_user_to_access_collection($params['user'], $granular_access->acl_id);
 		}
 	}
+	
+	elgg_set_config('granular_access_joins', array());
 }
 
 // called on shutdown handler
@@ -124,7 +142,7 @@ function process_group_leaves() {
 			}
 
 			// remove the guid of this group from the list, and count other groups where this user is a member
-			unset($guids[array_search($params['group'])]);
+			unset($guids[array_search($params['group'], $guids)]);
 
 			if ($guids) {
 
@@ -147,6 +165,8 @@ function process_group_leaves() {
 			remove_user_from_access_collection($params['user'], $granular_access->acl_id);
 		}
 	}
+	
+	elgg_set_config('granular_access_leaves', array());
 }
 
 
@@ -220,5 +240,6 @@ function process_group_deletion() {
 		repopulate_access_collection($granular_access);
 	}
 	
+	elgg_set_config('granular_access_deletions', array());
 	elgg_set_ignore_access($ia);
 }

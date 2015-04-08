@@ -120,9 +120,15 @@ function build_acl_from_guids($guids) {
 	// add our guid to a list to populate
 	register_new_granular_access($guid);
 
-	// unregister first so we don't end up with multiple firings of the event
-	elgg_unregister_event_handler('shutdown', 'system', __NAMESPACE__ . '\\populate_acls');
-	elgg_register_event_handler('shutdown', 'system', __NAMESPACE__ . '\\populate_acls');
+	if (!$GLOBALS['shutdown_flag']) {
+		// unregister first so we don't end up with multiple firings of the event
+		elgg_unregister_event_handler('shutdown', 'system', __NAMESPACE__ . '\\populate_acls');
+		elgg_register_event_handler('shutdown', 'system', __NAMESPACE__ . '\\populate_acls');
+	}
+	else {
+		populate_acls();
+	}
+	
 	return $id;
 }
 
