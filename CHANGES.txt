@@ -2,6 +2,9 @@
 
 x.x (mm/dd/yyyy):
 
+1.1.1 (05/13.2015):
+ - fix join group event handler
+
 1.1 (04/08/2015):
  - better shutdown detection
 
