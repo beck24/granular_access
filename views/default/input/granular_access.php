@@ -2,6 +2,8 @@
 
 namespace GranularAccess;
 
+elgg_require_js('granular_access');
+
 // check to see if the current value is a granular access
 $acl = get_access_collection($vars['value']);
 
@@ -28,13 +30,14 @@ if ($acl) {
 // only do this if $granluar_access is valid
 // AND there's no existing matching option in the dropdown
 if ($granular_access) {
-	$options_values = get_write_access_array();
 	if (is_array($vars['options_values'])) {
 		$options_values = $vars['options_values'];
-		
-		if (array_search($vars['value'], $options_values) === false) {
-			$set_custom = true;
-		}
+	} else {
+		$options_values = get_write_access_array();
+	}
+
+	if (array_search($vars['value'], $options_values) === false) {
+		$set_custom = true;
 	}
 }
 
@@ -67,17 +70,3 @@ $callback = elgg_trigger_plugin_hook('granular_access', 'search_callback', $vars
 	));
 	?>
 </div>
-
-<?php
-if (!$set_custom) {
-	return;
-}
-
-// set the value of the access dropdown to custom
-?>
-
-<script>
-	$(document).ready(function() {
-		$('select[name="<?php echo $name; ?>"]').val('granular');
-	});
-</script>
