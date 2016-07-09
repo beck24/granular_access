@@ -1,6 +1,7 @@
 == Version History ==
 
 x.x (mm/dd/yyyy):
+ - Convert javascript to an AMD module
 
 1.1.1 (05/13.2015):
  - fix join group event handler
