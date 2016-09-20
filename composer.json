@@ -3,7 +3,7 @@
     "type": "elgg-plugin",
     "require": {
         "composer/installers": ">=1.0.8",
-        "hypejunction/elgg_tokeninput": "4.1.0",
+        "hypejunction/elgg_tokeninput": "4.1.*",
         "jumbojett/vroom": "dev-master"
     },
     "license": "GPL-2.0"
