@@ -13,6 +13,8 @@ namespace GranularAccess;
 
 const PLUGIN_ID = 'granular_access';
 const PLUGIN_VERSION = 20150513;
+const GRANULAR_ACCESS_OPTION = -4; // 'quasi_access' plugin is using -3
+const GRANULAR_ACCESS_SEPARATOR = '_-_';
 
 require_once __DIR__ . '/lib/functions.php';
 require_once __DIR__ . '/lib/hooks.php';
@@ -22,15 +24,20 @@ elgg_register_event_handler('init', 'system', __NAMESPACE__ . '\\init');
 
 function init() {
 	elgg_register_library('granular_access:upgrades', __DIR__ . '/lib/upgrades.php');
-	elgg_extend_view('input/access', 'input/granular_access');
+	elgg_extend_view('input/select', 'input/granular_access');
+        
+        // Required for lightbox (widgets...)
+        elgg_require_js('granular_access');
 
 	//register our hooks
 	// add a 'custom' option into the acl list
-	elgg_register_plugin_hook_handler('access:collections:write', 'user', __NAMESPACE__ . '\\acl_write_options');
+	elgg_register_plugin_hook_handler('access:collections:write', 'user', __NAMESPACE__ . '\\acl_write_options', 999);
 	elgg_register_plugin_hook_handler('action', 'all', __NAMESPACE__ . '\\action_submit', 2);
 	elgg_register_plugin_hook_handler('cron', 'weekly', __NAMESPACE__ . '\\weekly_cron');
 
-	// register these late in case some other event handler prevents joining/leaving
+        elgg_register_plugin_hook_handler('elgg.data', 'site', __NAMESPACE__ . '\\config_site');
+        
+        // register these late in case some other event handler prevents joining/leaving
 	elgg_register_event_handler('join', 'group', __NAMESPACE__ . '\\join_group', 1000);
 	elgg_register_event_handler('leave', 'group', __NAMESPACE__ . '\\leave_group', 1000);
 	elgg_register_event_handler('delete', 'group', __NAMESPACE__ . '\\delete_group', 1000);
