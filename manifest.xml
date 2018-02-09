@@ -25,5 +25,11 @@
         <name>vroom</name>
     </requires>
   
+    <requires>
+            <type>priority</type>
+            <plugin>widget_manager</plugin>
+            <priority>after</priority>
+    </requires>
+    
     <category>Access</category>
 </plugin_manifest>
