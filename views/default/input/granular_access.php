@@ -2,7 +2,10 @@
 
 namespace GranularAccess;
 
-elgg_require_js('granular_access');
+$classes = elgg_extract('class', $vars);
+if (!is_array($classes) || !in_array('elgg-input-access', $classes)) {
+    return;
+}
 
 // check to see if the current value is a granular access
 $acl = get_access_collection($vars['value']);
@@ -42,10 +45,14 @@ if ($granular_access) {
 }
 
 $name = $vars['name'] ? $vars['name'] : 'access_id';
-
+preg_match("/^(.+)\[(.+)\]$/", $name, $field);
+if( count($field) > 2 ) {
+    $name = $field[1].GRANULAR_ACCESS_SEPARATOR.$field[2];
+}
+    
 echo elgg_view('input/hidden', array('name' => 'granular_access_names[]', 'value' => $name));
 
-if ($set_custom) {
+if ($set_custom && preg_match('/^granular_access:.{32}$/',$acl->name)) {
 	// this is a granular_access value, so we should show the form by default
 	$hidden = '';
 }

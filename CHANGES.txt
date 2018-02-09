@@ -2,6 +2,12 @@
 
 x.x (mm/dd/yyyy):
 
+1.1.2 (02/08.2018):
+ - fix #12 Custom access not working with widget manager
+ - fix #13 Custom access in user profile fields is not saved
+ - fix #14 a 'granular_access:xxxxxxxxxxxxx' option is displayed among the other access levels
+ - fix #15 'custom access' field is displayed whereas content 'access' is set to a 'group'
+
 1.1.1 (05/13.2015):
  - fix join group event handler
 

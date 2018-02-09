@@ -3,7 +3,7 @@
     <name>Granular Access</name>
     <id>granular_access</id>
     <author>Matt Beckett</author>
-    <version>1.1.1</version>
+    <version>1.1.2</version>
     <description>Set custom access on a per user/group basis</description>
     <website>http://mattbeckett.me</website>
     <copyright>(C) Matt Beckett, 2011</copyright>
@@ -25,5 +25,11 @@
         <name>vroom</name>
     </requires>
   
+    <requires>
+            <type>priority</type>
+            <plugin>widget_manager</plugin>
+            <priority>after</priority>
+    </requires>
+    
     <category>Access</category>
 </plugin_manifest>

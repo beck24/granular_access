@@ -7,7 +7,7 @@ function acl_write_options($h, $t, $r, $p) {
 	$user = get_user($p['user_id']);
 	
 	if (can_use_granular($user)) {
-		$r['granular'] = elgg_echo('granular_access:custom');
+		$r[GRANULAR_ACCESS_OPTION] = elgg_echo('granular_access:custom');
 	}
 	
 	return $r;
@@ -23,25 +23,37 @@ function action_submit($h, $t, $r, $p) {
 	
 	foreach ($granular_inputs as $name) {
 		$input = get_input('ga_build_' . $name);
-		$original = get_input($name);
+                
+                $regexp = "/^(.+)".GRANULAR_ACCESS_SEPARATOR."(.+)$/";;
+                preg_match($regexp, $name, $field);
+                if (count($field) > 2) {
+                        $accesses = get_input("{$field[1]}");
+                        $original = (int)$accesses[$field[2]];
+                } else {
+        		$original = (int)get_input($name);                    
+                }
 		
-		if ($original != 'granular') {
+		if ($original != GRANULAR_ACCESS_OPTION) {
 			continue;
 		}
 		
-		if (!$input && is_numeric($original)) {
+		if (!$input && ($original != GRANULAR_ACCESS_OPTION)) {
 			// leave it alone
 			continue;
 		}
-		elseif (!$input && $original == 'granular') {
+		elseif (!$input && $original == GRANULAR_ACCESS_OPTION) {
 			set_input($name, ACCESS_PRIVATE);
 			continue;
 		}
 
 		// lets build a collection
 		$access_id = get_access_for_guids($input);
-		
-		set_input($name, $access_id);
+                if( count($field) > 2) {
+                        $accesses[$field[2]] = $access_id;
+                        set_input("{$field[1]}", $accesses);
+                } else {
+        		set_input($name, $access_id);                    
+                }        
 	}
 	
 	set_input('granular_access_names', null);
@@ -101,4 +113,21 @@ function weekly_cron($h, $t, $r, $p) {
 	elgg_set_ignore_access($ia);
 	
 	return $r;
+}
+
+/**
+ * Pass info to javascript
+ * 
+ * @param type $h
+ * @param type $t
+ * @param type $r
+ * @param type $p
+ * @return type
+ */
+function config_site($hook, $type, $value, $params) {
+        // this will be cached client-side
+        $value[PLUGIN_ID]['GRANULAR_ACCESS_OPTION'] = GRANULAR_ACCESS_OPTION;
+        $value[PLUGIN_ID]['GRANULAR_ACCESS_SEPARATOR'] = GRANULAR_ACCESS_SEPARATOR;
+        
+        return $value;
 }
