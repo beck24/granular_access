@@ -24,16 +24,15 @@ function tokeninput_search($query, $options = array()) {
 	// replace mysql vars with escaped strings
 	$q = str_replace(array('_', '%'), array('\_', '\%'), $query);
 
-	$dbprefix = elgg_get_config('dbprefix');
-
 	$options['types'] = array('user', 'group');
-	$options['joins'] = array(
-		"LEFT JOIN {$dbprefix}users_entity ue ON ue.guid = e.guid",
-		"LEFT JOIN {$dbprefix}groups_entity ge ON ge.guid = e.guid",
-	);
-	$options['wheres'] = array(
-		"(ue.name LIKE '%$q%' OR ue.username LIKE '%$q%' OR ge.name LIKE '%$q%')"
-	);
+	$options['search_name_value_pairs'] = [
+		[
+			'name' => ['name', 'username'],
+			'value' => '%' . $q . '%',
+			'operand' => 'LIKE',
+			'case_sensitive' => false
+		]
+	];
 
 	return elgg_get_entities($options);
 }
@@ -110,7 +109,7 @@ function build_acl_from_guids($guids) {
 		}
 	}
 
-	$id = create_access_collection('granular_access:' . $token, $site->guid);
+	$id = create_access_collection('granular_access:' . $token, $site->guid, 'granular_access');
 	$granular_access->acl_id = $id;
 
 	elgg_set_ignore_access($ia);
@@ -261,4 +260,202 @@ function merge_access($access1, $access2) {
 	update_data($sql);
 	
 	return true;
+}
+
+// called on the shutdown handler for use with vroom
+function populate_acls() {
+	$ia = elgg_set_ignore_access(true);
+	$guids = elgg_get_config('new_granular_access');
+
+	if (!is_array($guids)) {
+		return true;
+	}
+
+	foreach ($guids as $guid) {
+		$granular_access = get_entity($guid);
+		if (!elgg_instanceof($granular_access, 'object', 'granular_access')) {
+			continue;
+		}
+		
+		repopulate_acl($granular_access);
+
+	}
+	elgg_set_config('new_granular_access', array());
+	elgg_set_ignore_access($ia);
+}
+
+// called on shutdown handler
+// performs logic based on people joining groups
+function process_group_joins() {
+	$joins = elgg_get_config('granular_access_joins');
+
+	if (!is_array($joins)) {
+		return true;
+	}
+
+	foreach ($joins as $params) {
+		$options = array(
+			'type' => 'object',
+			'subtype' => 'granular_access',
+			'metadata_name_value_pairs' => array(
+				'name' => 'access_list',
+				'value' => $params['group']
+			),
+			'limit' => false
+		);
+
+		// get granular access objects that pertain to this group
+		$batch = new ElggBatch('elgg_get_entities_from_metadata', $options);
+
+		foreach ($batch as $granular_access) {
+			if ($granular_access->single_group) {
+				// this uses the default group acl
+				continue;
+			}
+
+			add_user_to_access_collection($params['user'], $granular_access->acl_id);
+		}
+	}
+	
+	elgg_set_config('granular_access_joins', array());
+}
+
+// called on shutdown handler
+// performs logic based on people leaving groups
+function process_group_leaves() {
+	$leaves = elgg_get_config('granular_access_leaves');
+
+	if (!is_array($leaves)) {
+		return true;
+	}
+
+	foreach ($leaves as $params) {
+		$options = array(
+			'type' => 'object',
+			'subtype' => 'granular_access',
+			'metadata_name_value_pairs' => array(
+				'name' => 'access_list',
+				'value' => $params['group']
+			),
+			'limit' => false
+		);
+
+		// get granular access objects that pertain to this group
+		$batch = new ElggBatch('elgg_get_entities_from_metadata', $options);
+
+		foreach ($batch as $granular_access) {
+			if ($granular_access->single_group) {
+				// this uses the default group acl
+				continue;
+			}
+
+			// here's where it gets tricky, we want to remove them if there's no other reason to keep them
+			// that is they aren't explicitly mentioned, and they aren't in another group
+			$guids = (array) $granular_access->access_list;
+			if (in_array($params['user'], $guids)) {
+				// they are explicitly listed, so do nothing, they stay in the acl
+				continue;
+			}
+
+			// remove the guid of this group from the list, and count other groups where this user is a member
+			unset($guids[array_search($params['group'], $guids)]);
+
+			if ($guids) {
+
+				$ia = elgg_set_ignore_access(true); // in case of hidden groups!
+				$count = elgg_get_entities_from_relationship(array(
+					'guids' => $guids,
+					'type' => 'group',
+					'relationship' => 'member',
+					'relationship_guid' => $params['user'],
+					'inverse_relationship' => false,
+					'count' => true
+				));
+				elgg_set_ignore_access($ia);
+
+				if ($count) {
+					continue;
+				}
+			}
+
+			remove_user_from_access_collection($params['user'], $granular_access->acl_id);
+		}
+	}
+	
+	elgg_set_config('granular_access_leaves', array());
+}
+
+
+/**
+ * sort out acls when groups get deleted
+ * @return boolean
+ */
+function process_group_deletion() {
+	$deletions = elgg_get_config('granular_access_deletions');
+	
+	if (!is_array($deletions)) {
+		return true;
+	}
+	
+	$guids = array_keys($deletions);
+	
+	// note these guids don't exist anymore
+	$options = array(
+		'type' => 'object',
+		'subtype' => 'granular_access',
+		'metadata_name_value_pairs' => array(
+			'name' => 'access_list',
+			'value' => $guids
+		),
+		'limit' => false
+	);
+	
+	$batch = new ElggBatch('elgg_get_entities_from_metadata', $options);
+	
+	$ia = elgg_set_ignore_access(true);
+	foreach ($batch as $granular_access) {
+		if ($granular_access->single_group) {
+			$granular_access->delete();
+			continue;
+		}
+		
+		$access_list = (array) $granular_access->access_list;
+		
+		// remove any of the guids from the access_list
+		$access_list = array_diff($access_list, $guids);
+		
+		if (!$access_list) {
+			// the access list is empty no need for this access
+			delete_access_collection($granular_access->acl_id);
+			$granular_access->delete();
+			continue;
+		}
+		
+		// make sure this doesn't just become a duplicate
+		$token = get_token_from_guids($access_list);
+		$entities = elgg_get_entities_from_metadata(array(
+			'type' => 'object',
+			'subtype' => 'granular_access',
+			'metadata_name_value_pairs' => array(
+				'name' => 'token',
+				'value' => $token
+			),
+			'wheres' => array("e.guid != {$granular_access->guid}")
+		));
+			
+		if ($entities) {
+			if (merge_access($granular_access, $entities[0])) {
+				delete_access_collection($granular_access->acl_id);
+				$granular_access->delete();
+				continue;
+			}
+		}
+		
+		$granular_access->access_list = $access_list;
+		
+		repopulate_access_collection($granular_access);
+	}
+	
+	elgg_set_config('granular_access_deletions', array());
+	elgg_set_ignore_access($ia);
 }
